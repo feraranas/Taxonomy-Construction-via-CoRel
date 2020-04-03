@@ -340,7 +340,7 @@ if __name__ == "__main__":
         test_data = process_test_data(sentences, [test_topic], test_cand, max_seq_length,ent_sent_index, ename2embed_bert, tokenizer)
         print(f"test data point number: {len(test_data)}")
         
-        entity_ratio, entity_count = relation_inference(test_data, model, BATCH_SIZE)
+        entity_ratio, entity_count = relation_inference(test_data, model, TEST_BATCH_SIZE)
         entity_ratio_alltopics1[test_topic] = entity_ratio
         entity_count_alltopics1[test_topic] = entity_count
 
