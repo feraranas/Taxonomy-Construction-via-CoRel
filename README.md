@@ -1,6 +1,6 @@
 # CoRel: Seed-Guided Topical Taxonomy Construction by Concept Learning and Relation Transferring
 
-The source code used for KDD submission No.2019. A jupyter-notebook version will be uploaded soon.
+The source code used for KDD submission No.2019. 
 
 ## Requirements
 
@@ -23,6 +23,9 @@ As an example, you can set ${topic_file} to be ``topics_field.txt`` for dataset 
 Each line starts with a parent node (with the root node being ROOT), and then followed by a ``tab``. The children nodes of this parent is appended and separated by ``space``. Generated embedding file is stored under ``${dataset}``.
 
 ### Step 2 & 3: Relation Transferring
+A jupyter notebook version is available for this step.
+You can change the dataset and the topic_file name in ``main.ipynb``.
+As another option, you can use the following python programme to generate the results.
 ```
 cd ..
 python main.py --dataset ${dataset} --topic_file ${topic_file}.txt
