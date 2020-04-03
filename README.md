@@ -18,15 +18,20 @@ Due to the constraint of size, we provide the link of our datasets in the follow
 cd c
 bash run_emb_part_tax.sh
 ```
-This step compiles the source file and trains embedding for concept learning. The ``--topic_file`` in the script is used to specify the seed taxonomy. Each line starts with a parent node (with the root node being ROOT), and then followed by a ``tab``. The children nodes of this parent is appended and separated by ``space``. Generated embedding file is stored under ``${dataset}``.
+This step compiles the source file and trains embedding for concept learning. The ``--topic_file`` in the script is used to specify the seed taxonomy. 
+As an example, you can set ${topic_file} to be ``topics_field.txt`` for dataset ``dblp`` and ``topics_des.txt`` for dataset ``yelp``. These topic files are already provided in the datasets. If you want to specify your own seed taxonomy, just feel free to create a new file using the format ``topics_{xxx}.txt``.
+Each line starts with a parent node (with the root node being ROOT), and then followed by a ``tab``. The children nodes of this parent is appended and separated by ``space``. Generated embedding file is stored under ``${dataset}``.
 
 ### Step 2 & 3: Relation Transferring
 ```
 cd ..
-python main.py --dataset --topic_file topics_field.txt
+python main.py --dataset ${dataset} --topic_file ${topic_file}.txt
 ```
-This step completes the taxonomy structure and output keywords for each node in the taxonomy. 
-
+This step completes the taxonomy structure and outputs keywords for each node in the taxonomy. 
+As an example, for DBLP dataset, you can run
+```
+python main.py --dataset dblp --topic_file topics_field.txt
+```
 ### Step 4: Concept learning for all nodes
 ```
 python generate_bash.py
