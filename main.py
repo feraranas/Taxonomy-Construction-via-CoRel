@@ -20,6 +20,7 @@ from train import *
 from batch_generation import *
 from pytorch_transformers import *
 from pytorch_transformers.modeling_bert import *
+from transformers import BertTokenizer, BertModel
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 BATCH_SIZE=16
@@ -29,70 +30,147 @@ max_seq_length = 128
 
 if __name__ == "__main__":
 
+    # This line of code involves the use of the argparse module in Python, 
+    # which provides a convenient way to parse command-line arguments.
     parser = argparse.ArgumentParser(description='main',
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    
+    # this line adds a command-line argument --dataset to the parser. 
+    # The --dataset argument is a flag that can be used when running the program from the command line. 
+    # If the user doesn't specify a value for --dataset, it defaults to 'dblp'.
     parser.add_argument('--dataset', default='dblp')
     parser.add_argument('--topic_file', default='topics_field.txt')
     parser.add_argument('--out_file', default='keyword_taxonomy.txt')
 
 
+    # This line of code parses the arguments from the command line and stores them in the args variable.
+    #This line parses the command-line arguments using the parse_args() method of the ArgumentParser object
+    # (parser). It reads the arguments from the command line, processes them according to the definitions 
+    # you specified earlier, and returns an object (args) containing the argument value
     args = parser.parse_args()
     print(args)
+
+    # These lines extract the values of the --dataset and --topic_file arguments from the args object 
+    # and store them in variables dataset and topic_file, respectively.
     dataset = args.dataset
     topic_file = args.topic_file
 
 
-
     # ent_sent_index.txt: record the sentence id where each entity occurs; used for generating BERT training sample
     print('------------------loading corpus!------------------')
-    ent_sent_index = dict()
+    ent_sent_index = dict() # initializes an empty dictionary where the data from the file will be stored. 
     with open(dataset+'/ent_sent_index.txt') as f:
         for line in f:
-            ent = line.split('\t')[0]
-            tmp = line.strip().split('\t')[1].split(' ')
-            tmp = [int(x) for x in tmp]
-            ent_sent_index[ent] = set(tmp)
-
+            ent = line.split('\t')[0] #  split the current line into two parts using the tab ('\t') character as a delimiter. 
+            tmp = line.strip().split('\t')[1].split(' ') # second part is split into a list of strings using space (' ') as a delimiter.
+            tmp = [int(x) for x in tmp] # each element of this list is converted to an integer using a list comprehension. 
+            
+            # the key is the ent variable (extracted from the first part of the line),
+            # and the value is a set of integers obtained from the tmp variable (extracted from the second part of the line). 
+            ### Using a set ensures that the data is stored in an unordered collection of unique elements.
+            ent_sent_index[ent] = set(tmp) 
+    
     # sentences_.txt: sentence id to text
     sentences = dict()
     with open(dataset+'/sentences_.txt') as f:
+        # This line iterates through each line of the opened file using a for loop. 
+        # The enumerate() function is used here to get both the line content (line) and its index (i).
+        # The index i starts from 0 for the first line, 1 for the second line, and so on.
         for i,line in enumerate(f):
             sentences[i] = line
-            
+
     ent_ent_index = dict()
     with open(dataset+'/ent_ent_index.txt') as f:
         for line in f:
             ent = line.split('\t')[0]
             tmp = line.strip().split('\t')[1].split(' ')
             ent_ent_index[ent] = set(tmp)
-            
-    
     
     print('------------------loading embedding!------------------')
 
     pretrain = 0
     use_cap0 = False
-    file = topic_file.split('_')[1].split('.')[0]
+    file = topic_file.split('_')[1].split('.')[0] # 'field'
 
-    # load word embedding
+    # LOAD WORD EMBEDDING
+    # get_emb(vec_file=)
     word_emb, vocabulary, vocabulary_inv, emb_mat = get_emb(vec_file=os.path.join(dataset, 'emb_part_'+file + '_w.txt'))
+    
+    ### print(word_emb) outputs:
+    # 'delay_spread': array([ 0.406334, -0.352674,  0.180382, -0.097917,  0.68063 ,  0.166258]),
+    # 'data_security': array([ 0.201929, -0.152651, -0.189683,  0.326593,  0.1081  ,  0.805797]),
+    # ...
+    # 'adaptive_filter': array([ 7.611800e-02, -7.497800e-02,  1.489310, -3.05475 , 0.224117])}
 
-    # load topic embedding
+    ### print(vocabulary) outputs:
+    # ['delay_spread': 12332 , 'data_security': 12333, ..., 'adaptive_filter': 16648]
+
+    ### print(vocabulary_inv) outputs inverse of vocabulary:
+    # [12332: 'delay_spread', 12333: 'data_security', ..., 16648: 'adaptive_filter']
+
+    ### print(emb_mat) outputs:
+    # [[4 5 7], [1 1.01 2.153], ..., [2.14 8.12 9]]
+
+
+    # LOAD TOPIC EMBEDDING
+    # get_temb(vec_file=, topic_file=)
     topic_emb, topic2id, id2topic, topic_hier = get_temb(vec_file=os.path.join(dataset, 'emb_part_'+file+'_t.txt'), topic_file=os.path.join(dataset, topic_file))
+    
+    ##### print(topic_emb) outputs:
+    ## just the 12 seed topic taxonomies embeddings (machine_learning, data_mining, ...)
+    # {'data_mining': array([-0.120063,  0.108274, -0.463706, -0.267065, ...]), ... }
 
-    # load word specificity
+    ##### print(topic2id) outputs:
+    # {'machine_learning': 0, 'data_mining': 1, 'natural_language_processing': 2, 
+    # 'named_entity_recognition': 3, 'information_extraction': 4, 'machine_translation': 5,
+    # 'support_vector_machines': 6, 'decision_trees': 7, 'neural_networks': 8,
+    # 'association_rule_mining': 9, 'text_mining': 10, 'web_mining': 11}
+
+    ##### print(id2topic) outputs:
+    # {0: 'machine_learning', 1: 'data_mining', 2: 'natural_language_processing',
+    # 3: 'named_entity_recognition', 4: 'information_extraction',
+    # 5: 'machine_translation', 6: 'support_vector_machines',
+    # 7: 'decision_trees', 8: 'neural_networks', 9: 'association_rule_mining',
+    # 10: 'text_mining', 11: 'web_mining'}
+
+    ##### print(topic_hier) outputs:
+    # {'ROOT': ['machine_learning', 'data_mining', 'natural_language_processing'],
+    # 'natural_language_processing': ['named_entity_recognition', 'information_extraction', 'machine_translation'],
+    # 'machine_learning': ['support_vector_machines', 'decision_trees', 'neural_networks'],
+    # 'data_mining': ['association_rule_mining', 'text_mining', 'web_mining']}
+
+    # LOAD WORD SPECIFICITY
+    # get_cap(vec_file=)
     word_cap = get_cap(vec_file=os.path.join(dataset, 'emb_part_'+file+'_cap.txt'))
+    
+    ##### print(word_cap) outputs:
+    # makes a dictionary where the key is the word and the value is the word specificity.
+    # {'can': 0.353891,
+    # 'from': 0.353306,
+    # ...
+    # 'which': 0.256500,
+    # 'paper': 0.451159}
 
-    ename2embed_bert = loadEnameEmbedding(os.path.join(dataset, 'BERTembed.txt'), 768)
+    # ename2embed_bert = loadEnameEmbedding(os.path.join(dataset, 'BERTembed.txt'), 768)
+    ##### print(ename2embed_bert) outputs:
+    # {'delay_spread': array([ 0.406334, -0.352674,  0.180382, -0.097917,  0.68063 ,  0.166258]),
+    # apache_solr': array([[ 1.04381144e-01,  1.28338580e-01, -1.25358200e-01,...]), ...}
+
 
     print('------------------generating subtopic candidates!------------------')
     # calculate topic representative words: rep_words
     rep_words = {}
     for topic in topic_emb:
-        print(topic)
+        print(topic) # outputs: 'machine_learning', 'data_mining', 'natural_language_processing', ...
+        
+        # topic: 'machine_learning', ...
+        # vocabulary_inv: [12332: 'delay_spread', 12333: 'data_security', ...
+        # topic_emb: {'machine_learning': array([-0.120063,  0.108274, -0.463706, -0.267065, ...]), ...}
+        # word_emb: {'delay_spread': array([...]), ...}
+
         sim_ranking = topic_sim(topic, vocabulary_inv, topic_emb, word_emb)
         if pretrain:
-            cap_ranking = np.ones((len(vocabulary)))
+            cap_ranking = np.ones((len(vocabulary))) # creates a 1D Narray equal to # of elements in vocabulary
             word_cap1 = np.ones((len(vocabulary)))
         else:
             cap_ranking = rank_cap(word_cap, vocabulary_inv, topic)
@@ -417,6 +495,3 @@ if __name__ == "__main__":
             with open(os.path.join(dataset, 'topics_'+topic+'.txt'),'w') as fout:
                 for cls in child_entities1[topic]:
                     fout.write(' '.join(cls)+'\n')
-
-            
-

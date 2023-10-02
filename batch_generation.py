@@ -36,8 +36,13 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
                             real_rep_words[child].append(b)  
                         for sen in cooccur:
                             sentences_index.append(sen)
-                            s = sentences[sen]
-                            s = '[CLS] '+s
+                            try:
+                                s = sentences[sen]
+                            except KeyError as e:
+                                print(f"KeyError: {e}, 'Sen' not found: {sen}")
+                            
+                            s = '[CLS] ' + ' '.join(s)
+
                             s = s.split(' ')
                             if a not in s or b not in s:
                                 continue
@@ -102,7 +107,9 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
                                 continue
 #                             sentences_index.append(sen)
                             s = sentences[sen]
-                            s = '[CLS] '+s
+
+                            s = '[CLS] ' + ' '.join(s)
+
                             s = s.split(' ')
                             if a not in s or b not in s:
                                 continue

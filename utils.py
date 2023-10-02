@@ -94,15 +94,77 @@ def get_cap(vec_file, cap0_file=None):
     return word_cap
 
 def topic_sim(query, idx2word, t_emb, w_emb):
+    '''
+        Parameter examples:
+        query: 'machine_learning', 'deep_learning'...
+        idx2word: [12332: 'delay_spread', 12333: 'data_security', ...
+        t_emb: {'machine_learning': array([-0.120063,  0.108274, -0.463706, -0.267065, ...]), ...}
+        w_emb: {'delay_spread': array([...]), ...}
+    '''
     if query in t_emb:
         q_vec = t_emb[query]
     else:
         q_vec = w_emb[query]
+    
+    # if len(idx2word) is 5000 (indicating you have 5000 words in your vocabulary) 
+    # and you're working with 100-dimensional word embeddings, this line of code 
+    # creates a 2D NumPy array with 5000 rows and 100 columns
     word_emb = np.zeros((len(idx2word), 100))
+
+    # for each word in the vocabulary, assign its corresponding word embedding
+    # This populates the word_emb array with word embeddings based on the indices in idx2word.
     for i in range(len(idx2word)):
         word_emb[i] = w_emb[idx2word[i]]
+
+    # calculates the dot product between two NumPy arrays: word_emb and q_vec. Here's what's happening:
+    # np.dot(word_emb, q_vec): This is using NumPy's dot function to compute the dot product between the
+    # 2D array word_emb and the 1D array q_vec. In linear algebra, the dot product of two vectors is a
+    # scalar quantity obtained by multiplying corresponding elements and summing the results.
+
+    # If word_emb is a 2D array of shape (n, m) where n is the number of words and m is the dimensionality
+    # of the word embeddings, and q_vec is a 1D array of shape (m,), then the dot product operation calculates
+    # a new 1D array of shape (n,)
+
+    # this .dotProduct is used to measure the similarity or relevance between the word represented by 'q_vec'
+    # and the words represented by the rows of 'word_emb'. 
+
+    #       Semantic Similarity:
+    # - If q_vec represents the embedding of a query word, and word_emb represents embeddings of a set of words
+    # (for instance, in a vocabulary), the dot product measures the semantic similarity between the query word
+    # and each word in the vocabulary.
+    # - Higher dot product values indicate that the word represented by the corresponding row in word_emb is
+    # more semantically similar to the query word represented by q_vec.
+
+    #       Word Similarity:
+    # In word similarity tasks, word_emb could represent embeddings of pairs of words. The goal might be to 
+    # measure the similarity between the pairs.
+    # Computing dot products between the pairs of word embeddings allows you to quantify their similarity.
+    # Higher dot product values imply that the words in the pairs are more similar according to the embedding space.
+
     res = np.dot(word_emb, q_vec)
+
+    # np.linalg.norm(word_emb, axis=1): This calculates the L2 norm of each row in the word_emb array. 
+    # The axis=1 argument specifies that the norm should be calculated along rows. As a result, this
+    # operation produces a 1D array where each element represents the L2 norm of the corresponding row in word_emb.
+
+    # res / np.linalg.norm(word_emb, axis=1): This performs element-wise division between the res array
+    # (which contains the dot products between q_vec and rows of word_emb) and the 1D array of L2 norms
+    # calculated from word_emb.
+
+    # The purpose of this operation is to normalize the dot products, effectively transforming them into
+    # cosine similarities. When two vectors are normalized (i.e., divided by their L2 norm), their dot
+    # product represents the cosine of the angle between them. In NLP tasks, cosine similarity is often
+    # used because it measures the similarity between vectors regardless of their magnitude, focusing only
+    # on their direction in the vector space.
+
+    # After this operation, res contains cosine similarity scores between the query vector represented by
+    # q_vec and each word or document represented by the rows of word_emb. Higher values in res indicate
+    # higher cosine similarity and, consequently, higher similarity between the query vector and the corresponding
+    # words or documents.
     res = res/np.linalg.norm(word_emb, axis=1)
+
+    # returns array of indices of the sorted results in descending order
+    # if res was [0.8, 0.2, 1.0, 0.5], np.argsort(-res) would return [2, 0, 3, 1]
     sort_id = np.argsort(-res)
 
     return sort_id
