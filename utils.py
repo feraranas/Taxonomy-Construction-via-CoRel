@@ -51,7 +51,7 @@ def get_temb(vec_file, topic_file):
     with open(topic_file, 'r') as f:
         for line in f:
             parent = line.strip().split('\t')[0]
-            temp = line.strip().split('\t')[1]          
+            temp = line.strip().split('\t')[1]    
             for topic in temp.split(' '):
                 topic2id[topic] = i
                 id2topic[i] = topic
@@ -101,6 +101,7 @@ def topic_sim(query, idx2word, t_emb, w_emb):
         t_emb: {'machine_learning': array([-0.120063,  0.108274, -0.463706, -0.267065, ...]), ...}
         w_emb: {'delay_spread': array([...]), ...}
     '''
+    # q_vec has the word embedding / it either finds in the topic emb | the word emb
     if query in t_emb:
         q_vec = t_emb[query]
     else:
@@ -170,10 +171,16 @@ def topic_sim(query, idx2word, t_emb, w_emb):
     return sort_id
 
 def rank_cap(cap, idx2word, class_name):
+    '''
+    Parameters
+        cap = {'can': 0.353891, 'from': 0.353306, ..., 'which': 0.256500} # 16,649, it's word specificity
+        idx2word = [12332: 'delay_spread', 12333: 'data_security', ...] # 16,649 it's the whole vocab
+        class_name = 'machine_learning', ... it's the topics
+    '''
     word_cap = np.zeros(len(idx2word))
     for i in range(len(idx2word)):
         if idx2word[i] in cap:
-            word_cap[i] = (cap[idx2word[i]]-cap[class_name]) ** 2
+            word_cap[i] = ( cap[idx2word[i]] - cap[class_name] ) ** 2
         else:
             word_cap[i] = np.array([1.0])
     low2high = np.argsort(word_cap)
@@ -192,6 +199,16 @@ def rank_cap_customed(cap, idx2word, class_idxs):
     return low2high, target_cap
 
 def aggregate_ranking(sim, cap, word_cap, topic, idx2word, pretrain, ent_sent_index, target=None):
+    '''
+    sim_ranking
+    cap_ranking
+    word_cap
+    topic
+    vocabulary_inv
+    pretrain
+    ent_sent_index
+    word_cap[topic]
+    '''
     simrank2id = np.ones(len(sim)) * np.inf
     caprank2id = np.ones(len(sim)) * np.inf
     for i, w in enumerate(sim[:]):
@@ -202,11 +219,13 @@ def aggregate_ranking(sim, cap, word_cap, topic, idx2word, pretrain, ent_sent_in
                 caprank2id[w] = i + 1
             if target is None:
                 caprank2id[w] = i + 1
-    if pretrain == 0:        
+    if pretrain == 0:
+        # print("pretrain == 0")
         agg_rank = simrank2id * caprank2id
         final_rank = np.argsort(agg_rank)
         final_rank_words = [idx2word[idx] for idx in final_rank[:500] if idx2word[idx] in ent_sent_index]
     else:
+        # print("!pretrain == 0")
         agg_rank = simrank2id
         final_rank = np.argsort(agg_rank)
         final_rank_words = [idx2word[idx] for idx in final_rank[:500] if idx2word[idx] in ent_sent_index]

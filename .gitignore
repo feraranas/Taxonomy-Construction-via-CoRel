@@ -2,3 +2,6 @@
 dblp/
 .yelp
 yelp/
+__pycache__
+__pycache__/
+.DS_Store
