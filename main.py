@@ -184,6 +184,9 @@ if __name__ == "__main__":
         rep_words1[topic] = [x for x in rep_words[topic]]
     for word in rep_words:
         rep_words[word] = [word]
+    # print(len(rep_words1))  # output: machine_learning data_mining natural_language_processing named_entity_recognition
+                              # information_extraction machine_translation support_vector_machines decision_trees
+                              # neural_networks association_rule_mining text_mining web_mining
 
 
     print('------------------initializing relation classifier!------------------')

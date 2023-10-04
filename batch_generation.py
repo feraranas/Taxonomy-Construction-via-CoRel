@@ -13,7 +13,7 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
         sentences[2] = "this work investigates o..."
         sentences[n] = "in all cases , the d..."
 
-    rep_words      =>
+    rep_words      => # 12 topics in seed taxonomy
         {'data_mining': ['algorithms', 'graphs', 'data_science'...], ...}
 
     topic_hier     =>
@@ -32,43 +32,62 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
     tokenizer      => BertTokenizer 'bert_base_uncased'
     '''
 
-    parent_list = [x for x in topic_hier if x != 'ROOT']
-    # print(parent_list)
-#     sentences_index = []
-#     final_data = []
+    parent_list = [x for x in topic_hier if x != 'ROOT'] # output: ['natural_language_processing', 'machine_learning', 'data_mining'] 
+    sentences_index = []
+    final_data = []
 
-#     real_rep_words = {}
-#     for key in rep_words:
-#         real_rep_words[key] = []
+    real_rep_words = {}
+    for key in rep_words:
+        real_rep_words[key] = []
         
-#     print("collecting positive samples!")
+    print("collecting positive samples!")
     
-#     for parent in parent_list:
-#         for child in topic_hier[parent]:
-# #             print(child)
-#             count = 10
-#             for b in rep_words[child]:
-#                 if b not in ent_sent_index:
-#                     continue
-#                 for a in rep_words[parent]:
-#                     if a not in ent_sent_index:
-#                         continue
-#                     cooccur = ent_sent_index[a].intersection(ent_sent_index[b])
-#                     if len(cooccur) > 0:
-#                         if a not in real_rep_words[parent]:
-#                             real_rep_words[parent].append(a)
-#                         if b not in real_rep_words[child]:
-#                             real_rep_words[child].append(b)  
-#                         for sen in cooccur:
-#                             sentences_index.append(sen)
-#                             try:
-#                                 s = sentences[sen]
-#                             except KeyError as e:
-#                                 print(f"KeyError: {e}, 'Sen' not found: {sen}")
-                            
-#                             s = '[CLS] ' + ' '.join(s)
+    for parent in parent_list:
+        # parent_i = 'natural_language_processing', 'machine_learning', 'data_mining'
+        # topic_hier[parent] = ['named_entity_recognition', 'information_extraction', 'machine_translation']
+        # child_i = 'named_entity_recognition', 'information_extraction', 'machine_translation'
+        for child in topic_hier[parent]:
+#             print(child)
+            count = 10
+            # b = 'algorithms', 'graphs', 'data_science'...
+            for b in rep_words[child]:
+                if b not in ent_sent_index:
+                    # si la palabra relacionada no la encuentra, simplemente vamos a la siguiente
+                    continue
+                for a in rep_words[parent]:
+                    # si la palabra relacionada no la encuentra, simplemente vamos a la siguiente
+                    if a not in ent_sent_index:
+                        continue
+                    # ent_sent_index[a] = [0 2 2 3 3 299 ...]
+                    # ent_sent_index[b] = [2 16 49 50 ...]
 
-#                             s = s.split(' ')
+                    # intersection() is a set method in Python. When called on a set, it returns a new set containing elements
+                    # that are present in both the original set and the set passed as an argument. In this case, it calculates
+                    # the intersection of sentence indices between entities a and b.
+                    cooccur = ent_sent_index[a].intersection(ent_sent_index[b])
+                    # print(cooccur)
+                    if len(cooccur) > 0:
+                        if a not in real_rep_words[parent]:
+                            real_rep_words[parent].append(a)
+                        if b not in real_rep_words[child]:
+                            real_rep_words[child].append(b)
+                        for sen in cooccur:
+                            # This line works for dblp 'sentences_.txt' given that the corpus is only 560_846 lines long
+                            if sen > 560_846:
+                                continue
+                            sentences_index.append(sen)
+                            try:
+                                s = sentences[sen]
+                                print(s)
+                            except KeyError as e:
+                                print(f"KeyError: {e}, 'Sen' not found: {sen}")
+                            
+                            # add a special token [CLS] at the beginning of the string. 
+                            # In (NLP) tasks, [CLS] (short for "classification") is a special token used in models like BERT
+                            # (Bidirectional Encoder Representations from Transformers) for sentence classification.
+                            s = '[CLS] ' + ' '.join(s)
+
+                            s = s.split(' ')
 #                             if a not in s or b not in s:
 #                                 continue
 #                             p_index = s.index(a)
@@ -79,10 +98,10 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
 #                             input_id = tokenizer.encode(' '.join(s))
 #                             tokened_text = tokenizer.tokenize(' '.join(s))
 #                             mask_id = [x for x in range(len(input_id)) if input_id[x]==103]  
-# #                             if len(mask_id) < 2:
-# #                                 print(' '.join(s))
-# #                                 print(a)
-# #                                 print(b)
+#                             if len(mask_id) < 2:
+#                                 print(' '.join(s))
+#                                 print(a)
+#                                 print(b)
 
 #                             if len(input_id) > max_seq_length:
 #                                 if mask_id[1] - mask_id[0] >= max_seq_length:
@@ -113,7 +132,7 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
 #     print("collecting negative samples from siblings!")  
 #     for parent in parent_list:
 #         for child in topic_hier[parent]:
-# #             print(child)
+#             print(child)
 #             count = 10
 #             for b in rep_words[child]:
 #                 if b not in ent_sent_index:
@@ -130,7 +149,7 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
 #                                 continue
 #                             if np.random.random(1) > 0.1:
 #                                 continue
-# #                             sentences_index.append(sen)
+#                             sentences_index.append(sen)
 #                             s = sentences[sen]
 
 #                             s = '[CLS] ' + ' '.join(s)
@@ -172,11 +191,11 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
     
 #     print("collecting negative samples from corpus!")
 #     while len(final_data) < pos_len * 2:
-# #         if len(final_data) % 100 == 0:
-# #             print(pos_len)
-# #             print(len(final_data))
+#         if len(final_data) % 100 == 0:
+#             print(pos_len)
+#             print(len(final_data))
 #         sen = np.random.choice(len(sentences))
-# #         remove positive sentences
+#         remove positive sentences
 #         if sen in sentences_index:
 #             continue
             
@@ -184,13 +203,13 @@ def process_training_data(sentences, rep_words, topic_hier, max_seq_length, ent_
 #         s = '[CLS] '+s
 #         s = sentences[sen].split(' ')
         
-#         #randomly choose pairs
+#         randomly choose pairs
 #         entities = [x for x in s if "_" in x]
 #         if len(entities) < 2:
 #             continue
 #         p_index, c_index = np.random.choice(len(entities),2)
 #         while c_index == p_index:
-# #             continue
+#             continue
 #             c_index = np.random.choice(len(entities))
             
 #         s[p_index] = '[MASK]'
